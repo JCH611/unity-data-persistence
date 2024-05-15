@@ -29,6 +29,7 @@ public class MainManager : MonoBehaviour
     void Start()
     {
         username = PlayerPrefs.GetString("username");
+        ScoreText.text = username;
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
