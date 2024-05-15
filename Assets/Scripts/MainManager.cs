@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using System.IO;
+using System;
+using TMPro;
 
 public class MainManager : MonoBehaviour
 {
@@ -12,16 +15,20 @@ public class MainManager : MonoBehaviour
 
     public Text ScoreText;
     public GameObject GameOverText;
-    
+
+    [SerializeField] TextMeshProUGUI bestScore;
+
     private bool m_Started = false;
     private int m_Points;
     
     private bool m_GameOver = false;
+    private string username;
 
     
     // Start is called before the first frame update
     void Start()
     {
+        username = PlayerPrefs.GetString("username");
         const float step = 0.6f;
         int perLine = Mathf.FloorToInt(4.0f / step);
         
@@ -36,6 +43,8 @@ public class MainManager : MonoBehaviour
                 brick.onDestroyed.AddListener(AddPoint);
             }
         }
+        LoadScore();
+        WriteBestScore();
     }
 
     private void Update()
@@ -45,7 +54,7 @@ public class MainManager : MonoBehaviour
             if (Input.GetKeyDown(KeyCode.Space))
             {
                 m_Started = true;
-                float randomDirection = Random.Range(-1.0f, 1.0f);
+                float randomDirection = UnityEngine.Random.Range(-1.0f, 1.0f);
                 Vector3 forceDir = new Vector3(randomDirection, 1, 0);
                 forceDir.Normalize();
 
@@ -65,12 +74,59 @@ public class MainManager : MonoBehaviour
     void AddPoint(int point)
     {
         m_Points += point;
-        ScoreText.text = $"Score : {m_Points}";
+        ScoreText.text = $"User: {username} --> Score : {m_Points}";
     }
 
     public void GameOver()
     {
         m_GameOver = true;
+        string bestScoreString = PlayerPrefs.GetString("bestScore");
+        Debug.Log(bestScoreString);
+        int bestScore = Int32.Parse(bestScoreString);
+        if(m_Points > bestScore){
+            SaveScore();
+            WriteBestScore();
+        }
         GameOverText.SetActive(true);
+    }
+
+    [System.Serializable]
+    private class UserScore
+    {
+        public string username;
+        public int score;
+    }
+
+    public void SaveScore()
+    {
+        UserScore data = new UserScore();
+        data.username = username;
+        data.score = m_Points;
+
+        string json = JsonUtility.ToJson(data);
+    
+        File.WriteAllText(Application.persistentDataPath + "/savefile.json", json);
+    }
+
+    public void LoadScore()
+    {
+        string path = Application.persistentDataPath + "/savefile.json";
+        if (File.Exists(path))
+        {
+            string json = File.ReadAllText(path);
+            UserScore data = JsonUtility.FromJson<UserScore>(json);
+            PlayerPrefs.SetString("bestUser", data.username);
+            PlayerPrefs.SetString("bestScore", data.score.ToString());
+        }
+    }
+
+    private void WriteBestScore(){
+        string bestUsernameText = PlayerPrefs.GetString("bestUser");
+        string bestScoreText = PlayerPrefs.GetString("bestScore");
+        if(bestUsernameText == "" || bestUsernameText == null){
+            PlayerPrefs.SetString("bestUser", "");
+            PlayerPrefs.SetString("bestScore", "0");
+        }
+        bestScore.text = $"Best score: {bestUsernameText} --> {bestScoreText}";
     }
 }
